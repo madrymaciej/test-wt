@@ -1039,7 +1039,8 @@ Odpowiadaj zwięźle i konkretnie po polsku. Gdy powołujesz się na przepisy, c
   chatHistory.push({ role: 'user', content: text });
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const PROXY_URL = 'https://anthropic-proxy.madry-maciej.workers.dev';
+    const resp = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
