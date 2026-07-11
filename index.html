@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quiz WT 2022 – Warunki Techniczne</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --card: #1a1a24;
+    --card2: #22222f;
+    --accent: #6c63ff;
+    --accent2: #9b94ff;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #f1f1f5;
+    --muted: #8888a0;
+    --border: #2e2e40;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', sans-serif; }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* HOME */
+  #home { align-items: center; justify-content: center; padding: 32px 24px; padding-bottom: max(32px, env(safe-area-inset-bottom)); gap: 20px; }
+  .logo-ring { width: 80px; height: 80px; border-radius: 24px; background: linear-gradient(135deg, var(--accent), #a855f7); display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 8px 32px rgba(108,99,255,0.4); }
+  .home-title { font-size: 26px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .home-sub { color: var(--muted); font-size: 14px; text-align: center; line-height: 1.5; max-width: 280px; }
+  .stat-row { display: flex; gap: 12px; width: 100%; }
+  .stat-card { flex: 1; background: var(--card); border-radius: 12px; padding: 14px; text-align: center; border: 1px solid var(--border); }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--accent2); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .mode-btn { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .mode-btn.selected { border-color: var(--accent); background: rgba(108,99,255,0.15); }
+  .mode-btn .mode-icon { font-size: 24px; margin-bottom: 6px; }
+  .mode-btn .mode-name { font-size: 13px; font-weight: 600; }
+  .mode-btn .mode-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn-primary { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--accent), #a855f7); border-radius: 14px; font-size: 17px; font-weight: 700; color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(108,99,255,0.35); transition: opacity 0.15s; }
+  .btn-primary:active { opacity: 0.85; }
+  .divider-label { color: var(--muted); font-size: 12px; width: 100%; }
+
+  /* QUIZ */
+  #quiz { }
+  .quiz-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); background: var(--bg); border-bottom: 1px solid var(--border); }
+  .back-btn { width: 36px; height: 36px; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: none; color: var(--text); font-size: 18px; cursor: pointer; flex-shrink: 0; }
+  .progress-wrap { flex: 1; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a855f7); border-radius: 2px; transition: width 0.4s ease; }
+  .score-badge { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .score-badge span { color: var(--accent2); }
+
+  .quiz-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .question-num { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question-tag { display: inline-block; background: rgba(108,99,255,0.2); color: var(--accent2); font-size: 11px; padding: 3px 8px; border-radius: 6px; }
+  .question-text { font-size: 18px; font-weight: 600; line-height: 1.45; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s; -webkit-user-select: none; }
+  .option:active { transform: scale(0.98); }
+  .option.selected { border-color: var(--accent); background: rgba(108,99,255,0.12); }
+  .option.correct { border-color: var(--green); background: rgba(34,197,94,0.12); }
+  .option.wrong { border-color: var(--red); background: rgba(239,68,68,0.12); }
+  .option.dimmed { opacity: 0.45; }
+  .option-letter { width: 32px; height: 32px; border-radius: 10px; background: var(--card2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; color: var(--muted); transition: all 0.2s; }
+  .option.selected .option-letter { background: var(--accent); color: #fff; }
+  .option.correct .option-letter { background: var(--green); color: #fff; }
+  .option.wrong .option-letter { background: var(--red); color: #fff; }
+  .option-text { font-size: 15px; line-height: 1.35; }
+
+  /* OPEN QUESTION */
+  .open-input-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .open-input { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; font-size: 15px; color: var(--text); resize: none; font-family: inherit; outline: none; min-height: 100px; transition: border-color 0.2s; }
+  .open-input:focus { border-color: var(--accent); }
+  .btn-check { padding: 14px; background: var(--accent); border-radius: 12px; color: #fff; font-size: 15px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }
+  .btn-check:active { opacity: 0.85; }
+  .btn-check:disabled { opacity: 0.4; cursor: default; }
+
+  /* ANSWER REVEAL */
+  .answer-reveal { background: var(--card); border-radius: 14px; border: 1px solid var(--border); overflow: hidden; animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .reveal-header { padding: 14px 16px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; border-bottom: 1px solid var(--border); }
+  .reveal-header.correct { background: rgba(34,197,94,0.1); color: var(--green); }
+  .reveal-header.wrong { background: rgba(239,68,68,0.1); color: var(--red); }
+  .reveal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .reveal-answer { font-size: 15px; line-height: 1.5; }
+  .reveal-source { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2); border-radius: 10px; padding: 12px; }
+  .source-label { font-size: 11px; color: var(--accent2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .source-text { font-size: 13px; color: var(--muted); line-height: 1.55; font-style: italic; }
+
+  .quiz-footer { padding: 16px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+  .btn-next { width: 100%; padding: 17px; background: linear-gradient(135deg, var(--accent), #a855f7); border-radius: 14px; font-size: 16px; font-weight: 700; color: #fff; border: none; cursor: pointer; display: none; }
+  .btn-question { width: 100%; padding: 14px; background: transparent; border: 1.5px solid var(--border); border-radius: 14px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* QUESTION MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 100; }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet { background: var(--card); border-radius: 24px 24px 0 0; width: 100%; max-height: 80dvh; display: flex; flex-direction: column; padding-bottom: max(24px, env(safe-area-inset-bottom)); animation: sheetUp 0.3s ease; }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 0; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .qa-bubble-user { background: var(--accent); color: #fff; border-radius: 14px 14px 4px 14px; padding: 12px 14px; font-size: 14px; align-self: flex-end; max-width: 85%; line-height: 1.4; }
+  .qa-bubble-ai { background: var(--card2); border-radius: 14px 14px 14px 4px; padding: 12px 14px; font-size: 14px; color: var(--text); max-width: 90%; line-height: 1.5; border: 1px solid var(--border); }
+  .qa-bubble-ai .source-tag { font-size: 11px; color: var(--accent2); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .modal-input-row { padding: 0 20px; display: flex; gap: 10px; align-items: center; }
+  .modal-input { flex: 1; background: var(--card2); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-send { width: 42px; height: 42px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-size: 18px; flex-shrink: 0; }
+
+  /* RESULTS */
+  #results { align-items: center; justify-content: center; padding: 32px 24px; padding-bottom: max(32px, env(safe-area-inset-bottom)); gap: 20px; }
+  .result-ring { position: relative; width: 120px; height: 120px; }
+  .result-ring svg { transform: rotate(-90deg); }
+  .result-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .result-pct { font-size: 28px; font-weight: 800; }
+  .result-label { font-size: 11px; color: var(--muted); }
+  .result-title { font-size: 22px; font-weight: 700; text-align: center; }
+  .result-sub { font-size: 14px; color: var(--muted); text-align: center; }
+  .result-stats { display: flex; gap: 12px; width: 100%; }
+  .result-stat { flex: 1; background: var(--card); border-radius: 12px; padding: 14px; text-align: center; border: 1px solid var(--border); }
+  .result-stat .n { font-size: 24px; font-weight: 700; }
+  .result-stat .n.g { color: var(--green); }
+  .result-stat .n.r { color: var(--red); }
+  .result-stat .n.y { color: var(--yellow); }
+  .result-stat .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn-secondary { width: 100%; padding: 17px; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; }
+
+  /* CHIPS */
+  .difficulty-chips { display: flex; gap: 8px; width: 100%; }
+  .chip { flex: 1; padding: 8px; text-align: center; border-radius: 10px; border: 1.5px solid var(--border); font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.2s; }
+  .chip.easy.selected { border-color: var(--green); background: rgba(34,197,94,0.12); color: var(--green); }
+  .chip.med.selected { border-color: var(--yellow); background: rgba(245,158,11,0.12); color: var(--yellow); }
+  .chip.hard.selected { border-color: var(--red); background: rgba(239,68,68,0.12); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="logo-ring">🏗️</div>
+  <div>
+    <div class="home-title">Quiz WT 2022</div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px;">Rozporządzenie – Warunki Techniczne Budynków</div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-num">30</div><div class="stat-lbl">pytań</div></div>
+    <div class="stat-card"><div class="stat-num" id="best-score">–</div><div class="stat-lbl">najlepszy %</div></div>
+    <div class="stat-card" id="wrong-card" style="border-color:var(--border);transition:border-color 0.3s">
+      <div class="stat-num" id="wrong-count" style="color:var(--red)">–</div>
+      <div class="stat-lbl">do powtórki</div>
+    </div>
+  </div>
+
+  <div class="divider-label">Tryb quizu</div>
+  <div class="mode-grid">
+    <div class="mode-btn" data-mode="mixed" onclick="selectMode(this,'mixed')">
+      <div class="mode-icon">🎲</div>
+      <div class="mode-name">Mieszany</div>
+      <div class="mode-desc">Zamknięte + otwarte</div>
+    </div>
+    <div class="mode-btn" data-mode="closed" onclick="selectMode(this,'closed')">
+      <div class="mode-icon">✅</div>
+      <div class="mode-name">Zamknięte</div>
+      <div class="mode-desc">Tylko ABC</div>
+    </div>
+    <div class="mode-btn" data-mode="open" onclick="selectMode(this,'open')">
+      <div class="mode-icon">✍️</div>
+      <div class="mode-name">Otwarte</div>
+      <div class="mode-desc">Wpisz odpowiedź</div>
+    </div>
+    <div class="mode-btn selected" data-mode="random10" onclick="selectMode(this,'random10')">
+      <div class="mode-icon">⚡</div>
+      <div class="mode-name">Szybki</div>
+      <div class="mode-desc">10 losowych</div>
+    </div>
+  </div>
+
+  <div class="divider-label">Poziom trudności</div>
+  <div class="difficulty-chips">
+    <div class="chip easy selected" onclick="toggleDiff(this,'easy')">🟢 Łatwy</div>
+    <div class="chip med selected" onclick="toggleDiff(this,'med')">🟡 Średni</div>
+    <div class="chip hard selected" onclick="toggleDiff(this,'hard')">🔴 Trudny</div>
+  </div>
+
+  <button class="btn-primary" onclick="startQuiz()">Rozpocznij quiz →</button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="quiz-header">
+    <button class="back-btn" onclick="goHome()">‹</button>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="q-label">Pytanie 1 z 10</span>
+        <span id="q-tag" class="question-tag">§ 12</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="score-badge">✓ <span id="score-num">0</span></div>
+  </div>
+
+  <div class="quiz-body" id="quiz-body">
+    <div class="question-text" id="question-text"></div>
+    <div id="options-area"></div>
+    <div id="answer-reveal"></div>
+  </div>
+
+  <div class="quiz-footer">
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Następne pytanie →</button>
+    <button class="btn-question" onclick="openModal()">💬 Zadaj pytanie o ten przepis</button>
+    <button class="btn-question" onclick="finishEarly()" style="color:var(--red);border-color:rgba(239,68,68,0.3)">✕ Zakończ quiz</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="screen">
+  <div class="result-ring">
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+      <circle cx="60" cy="60" r="50" fill="none" stroke="url(#grad)" stroke-width="10"
+        stroke-linecap="round" id="result-arc" stroke-dasharray="0 314"/>
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#6c63ff"/>
+          <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="result-ring-text">
+      <div class="result-pct" id="result-pct">0%</div>
+      <div class="result-label">wynik</div>
+    </div>
+  </div>
+  <div class="result-title" id="result-title">Nieźle!</div>
+  <div class="result-sub" id="result-sub"></div>
+  <div class="result-stats">
+    <div class="result-stat"><div class="n g" id="res-correct">0</div><div class="l">Poprawne</div></div>
+    <div class="result-stat"><div class="n r" id="res-wrong">0</div><div class="l">Błędne</div></div>
+    <div class="result-stat"><div class="n y" id="res-total">0</div><div class="l">Pytań</div></div>
+  </div>
+  <button class="btn-primary" onclick="startQuiz()">Zagraj jeszcze raz</button>
+  <button class="btn-secondary" onclick="goHome()">Wróć do menu</button>
+</div>
+
+<!-- QUESTION MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalBg(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="modal-title">💬 Pytanie do Claude</div>
+        <div class="modal-sub" id="modal-context-label">Kontekst: aktualne pytanie</div>
+      </div>
+      <button onclick="showApiKeyScreen()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:12px;cursor:pointer" id="api-key-btn">⚙️ API</button>
+    </div>
+
+    <!-- API KEY SETUP (ukryte domyślnie) -->
+    <div id="api-key-screen" style="display:none;flex-direction:column;gap:12px;padding:16px 20px;flex:1">
+      <div style="font-size:14px;color:var(--text);font-weight:600">Klucz API Anthropic</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">
+        Aby czat odpowiadał przez Claude, wpisz swój klucz API z <strong style="color:var(--accent2)">console.anthropic.com</strong>. Klucz jest zapisany tylko lokalnie w przeglądarce.
+      </div>
+      <input id="api-key-input" type="password" placeholder="sk-ant-api03-…"
+        style="background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text);font-family:monospace;outline:none;width:100%">
+      <div style="display:flex;gap:10px">
+        <button onclick="saveApiKey()" style="flex:1;padding:13px;background:var(--accent);border-radius:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer">Zapisz klucz</button>
+        <button onclick="clearApiKey()" style="padding:13px 16px;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;border:none;cursor:pointer">Usuń</button>
+      </div>
+      <div id="api-key-status" style="font-size:12px;color:var(--green);text-align:center;min-height:16px"></div>
+      <button onclick="hideApiKeyScreen()" style="padding:12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;cursor:pointer">← Wróć do czatu</button>
+    </div>
+
+    <!-- CHAT -->
+    <div id="chat-screen" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <div class="modal-body" id="modal-body">
+        <div class="qa-bubble-ai">
+          Cześć! Jestem Claude. Zadaj dowolne pytanie dotyczące aktualnego zagadnienia lub rozporządzenia WT 2022.
+          <div class="source-tag" id="api-status-note">⚙️ Wpisz klucz API (przycisk „API"), aby aktywować odpowiedzi Claude.</div>
+        </div>
+      </div>
+      <div class="modal-input-row">
+        <input class="modal-input" id="modal-input" placeholder="Wpisz pytanie…" onkeydown="if(event.key==='Enter')sendQuestion()">
+        <button class="modal-send" id="send-btn" onclick="sendQuestion()">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== BAZA PYTAŃ ======================
+const ALL_QUESTIONS = [
+  // ŁATWE
+  {
+    id:1, diff:'easy', section:'§ 8', topic:'Podział budynków wg wysokości',
+    type:'closed',
+    q:'Który z budynków należy do grupy "niskich" (N) według rozporządzenia?',
+    options:['Budynek 10 m nad poziomem terenu','Budynek 14 m nad poziomem terenu','Budynek 26 m nad poziomem terenu','Budynek 60 m nad poziomem terenu'],
+    correct:0,
+    explanation:'Budynki niskie (N) to budynki do 12 m włącznie nad poziomem terenu lub mieszkalne o wysokości do 4 kondygnacji nadziemnych włącznie.',
+    source:'§ 8 pkt 1: „niskie (N) – do 12 m włącznie nad poziomem terenu lub mieszkalne o wysokości do 4 kondygnacji nadziemnych włącznie"'
+  },
+  {
+    id:2, diff:'easy', section:'§ 12', topic:'Usytuowanie budynku',
+    type:'closed',
+    q:'Jaka minimalna odległość budynku od granicy działki obowiązuje, gdy ściana NIE ma okien ani drzwi skierowanych w stronę tej granicy?',
+    options:['1,5 m','2 m','3 m','4 m'],
+    correct:2,
+    explanation:'Ściana bez okien i drzwi – minimalna odległość wynosi 3 m. Ściana z oknami lub drzwiami – minimum 4 m.',
+    source:'§ 12 ust. 1 pkt 2: „3 m – w przypadku budynku zwróconego ścianą bez okien i drzwi w stronę tej granicy"'
+  },
+  {
+    id:3, diff:'easy', section:'§ 43', topic:'Ogrodzenia',
+    type:'closed',
+    q:'Jaka jest minimalna szerokość bramy w ogrodzeniu?',
+    options:['1,8 m','2,0 m','2,4 m','3,0 m'],
+    correct:2,
+    explanation:'Szerokość bramy w świetle powinna wynosić co najmniej 2,4 m. Furtka – co najmniej 0,9 m.',
+    source:'§ 43: „Szerokość bramy powinna wynosić w świetle co najmniej 2,4 m, a w przypadku zastosowania furtki jej szerokość powinna być nie mniejsza niż 0,9 m"'
+  },
+  {
+    id:4, diff:'easy', section:'§ 21', topic:'Stanowiska postojowe',
+    type:'closed',
+    q:'Jakie są minimalne wymiary stanowiska postojowego dla zwykłego samochodu osobowego?',
+    options:['2,0 × 4,5 m','2,5 × 5,0 m','3,0 × 5,5 m','3,6 × 5,0 m'],
+    correct:1,
+    explanation:'Standardowe stanowisko postojowe dla samochodu osobowego: szerokość 2,5 m, długość 5,0 m.',
+    source:'§ 21 ust. 1 pkt 1: „szerokość 2,5 m i długość 5 m – w przypadku samochodów osobowych"'
+  },
+  {
+    id:5, diff:'easy', section:'§ 41', topic:'Ogrodzenia – bezpieczeństwo',
+    type:'closed',
+    q:'Na jakiej wysokości zabronione jest umieszczanie ostro zakończonych elementów (np. drutu kolczastego) na ogrodzeniu?',
+    options:['Poniżej 1,0 m','Poniżej 1,2 m','Poniżej 1,5 m','Poniżej 1,8 m'],
+    correct:3,
+    explanation:'Ostro zakończone elementy, drut kolczasty, tłuczone szkło – zabronione poniżej 1,8 m wysokości ogrodzenia.',
+    source:'§ 41 ust. 2: „Umieszczanie na ogrodzeniach, na wysokości mniejszej niż 1,8 m, ostro zakończonych elementów, drutu kolczastego, tłuczonego szkła oraz innych podobnych wyrobów i materiałów jest zabronione."'
+  },
+  {
+    id:6, diff:'easy', section:'§ 62', topic:'Drzwi wejściowe',
+    type:'closed',
+    q:'Jaką minimalną szerokość w świetle ościeżnicy muszą mieć drzwi wejściowe do budynku?',
+    options:['0,7 m','0,8 m','0,9 m','1,0 m'],
+    correct:2,
+    explanation:'Drzwi wejściowe do budynku i ogólnodostępnych pomieszczeń: minimum 0,9 m szerokości i 2,0 m wysokości w świetle ościeżnicy.',
+    source:'§ 62 ust. 1: „drzwi wejściowe do budynku (…) powinny mieć w świetle ościeżnicy co najmniej: szerokość 0,9 m i wysokość 2 m"'
+  },
+  {
+    id:7, diff:'easy', section:'§ 3 pkt 22', topic:'Teren biologicznie czynny',
+    type:'closed',
+    q:'Co zalicza się do terenu biologicznie czynnego zgodnie z rozporządzeniem?',
+    options:['Betonowy parking z trawą w szczeliniach','Taras i stropodach w 50% powierzchni zapewniającej wegetację roślin','Chodnik z kostki brukowej','Asfaltowe dojście do garażu'],
+    correct:1,
+    explanation:'Teren biologicznie czynny to nawierzchnia z naturalną wegetacją roślin i retencją wód, a także 50% powierzchni tarasów i stropodachów z taką nawierzchnią (min. 10 m²) oraz woda powierzchniowa.',
+    source:'§ 3 pkt 22: „teren o nawierzchni urządzonej w sposób zapewniający naturalną wegetację roślin i retencję wód opadowych, a także 50% powierzchni tarasów i stropodachów z taką nawierzchnią (…)"'
+  },
+  {
+    id:8, diff:'easy', section:'§ 19', topic:'Parkingi – odległości',
+    type:'closed',
+    q:'Jaka minimalna odległość obowiązuje od parkingu na max. 10 miejsc do okien budynku mieszkalnego?',
+    options:['3 m','5 m','7 m','10 m'],
+    correct:2,
+    explanation:'Parking do 10 stanowisk osobowych – minimalna odległość od okien budynku mieszkalnego wynosi 7 m.',
+    source:'§ 19 ust. 1 pkt 1 lit. a: „7 m – w przypadku parkingu do 10 stanowisk postojowych włącznie"'
+  },
+
+  // ŚREDNIE
+  {
+    id:9, diff:'med', section:'§ 8', topic:'Podział budynków wg wysokości',
+    type:'closed',
+    q:'Do której grupy wysokości należy budynek mieszkalny o 6 kondygnacjach nadziemnych?',
+    options:['Niski (N)','Średniowysoki (SW)','Wysoki (W)','Wysokościowy (WW)'],
+    correct:1,
+    explanation:'Budynki średniowysokie (SW) to budynki od ponad 12 m do 25 m lub mieszkalne o wysokości ponad 4 do 9 kondygnacji nadziemnych. 6 kondygnacji mieści się w tej grupie.',
+    source:'§ 8 pkt 2: „średniowysokie (SW) – ponad 12 m do 25 m włącznie nad poziomem terenu lub mieszkalne o wysokości ponad 4 do 9 kondygnacji nadziemnych włącznie"'
+  },
+  {
+    id:10, diff:'med', section:'§ 39', topic:'Zieleń na działce',
+    type:'closed',
+    q:'Ile procent działki pod zabudowę wielorodzinną musi stanowić teren biologicznie czynny (jeśli plan miejscowy nie stanowi inaczej)?',
+    options:['15%','20%','25%','30%'],
+    correct:2,
+    explanation:'Na działkach pod zabudowę wielorodzinną oraz pod budynki opieki zdrowotnej i oświaty – co najmniej 25% powierzchni działki musi być terenem biologicznie czynnym.',
+    source:'§ 39: „co najmniej 25% powierzchni działki należy urządzić jako powierzchnię terenu biologicznie czynnego"'
+  },
+  {
+    id:11, diff:'med', section:'§ 54', topic:'Windy (dźwigi)',
+    type:'closed',
+    q:'Kiedy budynek mieszkalny wielorodzinny NIE musi być wyposażony w dźwig?',
+    options:['Gdy ma mniej niż 4 kondygnacje','Do 5. kondygnacji nadziemnej, jeśli wszystkie pomieszczenia na ostatniej kondygnacji są częścią mieszkań dwupoziomowych','Gdy jest w zabudowie zagrodowej','Gdy wysokość nie przekracza 9 m'],
+    correct:1,
+    explanation:'Dopuszcza się niewyposażenie w dźwig budynku mieszkalnego wielorodzinnego do 5. kondygnacji nadziemnej włącznie, jeżeli wszystkie pomieszczenia na ostatniej kondygnacji są częścią mieszkań dwupoziomowych.',
+    source:'§ 54 ust. 3: „Dopuszcza się niewyposażenie w dźwigi budynku mieszkalnego wielorodzinnego do 5. kondygnacji nadziemnej włącznie, jeżeli wszystkie pomieszczenia na ostatniej kondygnacji są częścią mieszkań dwupoziomowych."'
+  },
+  {
+    id:12, diff:'med', section:'§ 23', topic:'Miejsca gromadzenia odpadów',
+    type:'closed',
+    q:'Jaka minimalna odległość wymagana jest od miejsca gromadzenia odpadów stałych do okien i drzwi budynków mieszkalnych?',
+    options:['5 m','7 m','10 m','15 m'],
+    correct:2,
+    explanation:'Minimalna odległość od miejsca gromadzenia odpadów do okien i drzwi do pomieszczeń przeznaczonych na pobyt ludzi wynosi 10 m (oraz min. 3 m od granicy działki).',
+    source:'§ 23 ust. 1 pkt 1: „10 m – od okien i drzwi do budynków z pomieszczeniami przeznaczonymi na pobyt ludzi"'
+  },
+  {
+    id:13, diff:'med', section:'§ 40', topic:'Place zabaw',
+    type:'closed',
+    q:'Ile godzin nasłonecznienia musi mieć plac zabaw dla dzieci (w dniach równonocy)?',
+    options:['2 godziny','3 godziny','4 godziny','5 godzin'],
+    correct:2,
+    explanation:'Plac zabaw musi mieć min. 4 godziny nasłonecznienia (godz. 10:00–16:00) w dniach równonocy. W zabudowie śródmiejskiej dopuszcza się 2 godziny.',
+    source:'§ 40 ust. 2: „Nasłonecznienie placu zabaw dla dzieci powinno wynosić co najmniej 4 godziny, liczone w dniach równonocy, w godzinach 10⁰⁰–16⁰⁰."'
+  },
+  {
+    id:14, diff:'med', section:'§ 31', topic:'Studnie',
+    type:'closed',
+    q:'Jaka minimalna odległość studni od granicy działki jest wymagana?',
+    options:['3 m','5 m','7,5 m','10 m'],
+    correct:1,
+    explanation:'Studnia dostarczająca wodę pitną musi być oddalona od granicy działki co najmniej o 5 m (mierząc od osi studni).',
+    source:'§ 31 ust. 1 pkt 1: „do granicy działki – 5 m"'
+  },
+  {
+    id:15, diff:'med', section:'§ 57', topic:'Oświetlenie dzienne',
+    type:'closed',
+    q:'Jaki minimalny stosunek powierzchni okien do powierzchni podłogi obowiązuje w pomieszczeniu przeznaczonym na pobyt ludzi?',
+    options:['1:6','1:8','1:10','1:12'],
+    correct:1,
+    explanation:'W pomieszczeniu na pobyt ludzi stosunek powierzchni okien (w świetle ościeżnic) do powierzchni podłogi musi wynosić co najmniej 1:8.',
+    source:'§ 57 ust. 2: „stosunek powierzchni okien, liczonej w świetle ościeżnic, do powierzchni podłogi powinien wynosić co najmniej 1:8"'
+  },
+  {
+    id:16, diff:'med', section:'§ 12', topic:'Usytuowanie budynku',
+    type:'open',
+    q:'Na jakiej minimalnej odległości od granicy działki można sytuować budynek, gdy ściana jest skierowana w stronę granicy i ma okna lub drzwi? Podaj wartość i podstawę prawną.',
+    answer:'4 metry (§ 12 ust. 1 pkt 1)',
+    keywords:['4 m','4m','cztery','§ 12'],
+    explanation:'Gdy budynek jest zwrócony ścianą z oknami lub drzwiami w stronę granicy, minimalna odległość wynosi 4 m.',
+    source:'§ 12 ust. 1 pkt 1: „4 m – w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy"'
+  },
+  {
+    id:17, diff:'med', section:'§ 4', topic:'Pobyt ludzi',
+    type:'closed',
+    q:'Jak długo trwa pobyt ludzi w pomieszczeniu "stałego pobytu" (ta sama osoba)?',
+    options:['Powyżej 2 godzin','Powyżej 4 godzin w ciągu doby','Powyżej 6 godzin w ciągu doby','Powyżej 8 godzin'],
+    correct:1,
+    explanation:'Pomieszczenie stałego pobytu ludzi to takie, w którym te same osoby przebywają dłużej niż 4 godziny w ciągu doby. Czasowy pobyt – od 2 do 4 godzin.',
+    source:'§ 4 pkt 1: „pomieszczenia przeznaczone na stały pobyt ludzi, w których przebywanie tych samych osób w ciągu doby trwa dłużej niż 4 godziny"'
+  },
+
+  // TRUDNE
+  {
+    id:18, diff:'hard', section:'§ 13', topic:'Naturalne oświetlenie',
+    type:'closed',
+    q:'W zabudowie śródmiejskiej dopuszcza się zmniejszenie odległości obiektów przesłaniających. O ile można je zmniejszyć?',
+    options:['O 25%','O jedną trzecią','O połowę','O dwie trzecie'],
+    correct:2,
+    explanation:'W zabudowie śródmiejskiej odległości obiektów przesłaniających (zapewniające naturalne oświetlenie) mogą być zmniejszone nie więcej niż o połowę.',
+    source:'§ 13 ust. 4: „Odległości, o których mowa w ust. 1 pkt 1, mogą być zmniejszone nie więcej niż o połowę w zabudowie śródmiejskiej."'
+  },
+  {
+    id:19, diff:'hard', section:'§ 12', topic:'Zabudowa jednorodzinna – wyjątki',
+    type:'closed',
+    q:'W zabudowie jednorodzinnej na działce o szerokości nie większej niż 16 m możliwe jest postawienie ściany (bez okien i drzwi) w odległości mniejszej niż 3 m od granicy. Jaka jest minimalna dozwolona odległość?',
+    options:['0 m (bezpośrednio przy granicy)','0,5 m','1,0 m','1,5 m'],
+    correct:3,
+    explanation:'Na działce o szerokości 16 m lub mniejszej w zabudowie jednorodzinnej i zagrodowej – ściana bez okien i drzwi może być postawiona w odległości nie mniejszej niż 1,5 m od granicy.',
+    source:'§ 12 ust. 4 pkt 1: „nie mniejszej niż 1,5 m, na działce budowlanej o szerokości 16 m lub mniejszej"'
+  },
+  {
+    id:20, diff:'hard', section:'§ 19', topic:'Parkingi powyżej 60 miejsc',
+    type:'closed',
+    q:'Jaka minimalna odległość wymagana jest od parkingu powyżej 60 miejsc do okien budynku mieszkalnego?',
+    options:['10 m','15 m','20 m','30 m'],
+    correct:2,
+    explanation:'Parking powyżej 60 stanowisk dla samochodów osobowych – odległość od okien budynku mieszkalnego musi wynosić co najmniej 20 m.',
+    source:'§ 19 ust. 1 pkt 1 lit. c: „20 m – w przypadku parkingu powyżej 60 stanowisk postojowych"'
+  },
+  {
+    id:21, diff:'hard', section:'§ 36', topic:'Zbiorniki bezodpływowe',
+    type:'closed',
+    q:'W jakiej minimalnej odległości od okien i drzwi zewnętrznych (pom. przeznaczone na pobyt ludzi) muszą znajdować się pokrywy zbiorników bezodpływowych w zabudowie jednorodzinnej?',
+    options:['2 m','5 m','7,5 m','15 m'],
+    correct:1,
+    explanation:'W zabudowie jednorodzinnej, zagrodowej i rekreacji indywidualnej: min. 5 m od okien i drzwi zewnętrznych (ogólna reguła to 15 m, ale dla zabudowy jednorodzinnej jest wyjątek).',
+    source:'§ 36 ust. 2 pkt 1: „od okien i drzwi zewnętrznych do pomieszczeń przeznaczonych na pobyt ludzi – 5 m"'
+  },
+  {
+    id:22, diff:'hard', section:'§ 60', topic:'Nasłonecznienie – dzieci',
+    type:'closed',
+    q:'Ile godzin nasłonecznienia muszą mieć pomieszczenia do zbiorowego przebywania dzieci w przedszkolu (dni równonocy, godz. 8:00–16:00)?',
+    options:['2 godziny','3 godziny','4 godziny','6 godzin'],
+    correct:1,
+    explanation:'Pomieszczenia dla dzieci w żłobkach, przedszkolach, szkołach – co najmniej 3 godziny nasłonecznienia w dniach równonocy (godz. 8:00–16:00). W zabudowie śródmiejskiej dopuszcza się 1,5 godziny.',
+    source:'§ 60 ust. 1: „czas nasłonecznienia wynoszący co najmniej 3 godziny w dniach równonocy w godzinach 8⁰⁰–16⁰⁰"'
+  },
+  {
+    id:23, diff:'hard', section:'§ 12', topic:'Usytuowanie budynku – wyjątek',
+    type:'open',
+    q:'Wymień trzy warunki, przy których w zabudowie jednorodzinnej dopuszcza się budowę garażu bezpośrednio przy granicy działki.',
+    answer:'Długość nie większa niż 6,5 m, wysokość nie większa niż 3 m, ściana bez okien i drzwi',
+    keywords:['6,5','3 m','bez okien','ściana'],
+    explanation:'Budynek gospodarczy lub garaż może być postawiony bezpośrednio przy granicy jeśli: długość max 6,5 m, wysokość max 3 m, ściana od strony granicy bez okien i drzwi.',
+    source:'§ 12 ust. 4 pkt 3: „budowę budynku gospodarczego lub garażu o długości nie większej niż 6,5 m i wysokości nie większej niż 3 m bezpośrednio przy granicy działki (…) ścianą bez okien i drzwi"'
+  },
+  {
+    id:24, diff:'hard', section:'§ 14', topic:'Dojścia i dojazdy',
+    type:'closed',
+    q:'Jaka jest minimalna szerokość jezdni stanowiącej dojazd do działki budowlanej?',
+    options:['2 m','2,5 m','3 m','4 m'],
+    correct:2,
+    explanation:'Szerokość jezdni jako dojazdu do działki nie może być mniejsza niż 3 m.',
+    source:'§ 14 ust. 1: „Szerokość jezdni stanowiącej dojazd nie może być mniejsza niż 3 m."'
+  },
+  {
+    id:25, diff:'hard', section:'§ 21', topic:'Stanowiska dla niepełnosprawnych',
+    type:'closed',
+    q:'Jakie minimalne wymiary musi mieć stanowisko postojowe dla osoby niepełnosprawnej?',
+    options:['2,5 × 5,0 m','3,0 × 5,0 m','3,6 × 5,0 m','4,0 × 5,5 m'],
+    correct:2,
+    explanation:'Stanowisko postojowe dla samochodów osobowych użytkowanych przez osoby niepełnosprawne: szerokość 3,6 m i długość 5,0 m.',
+    source:'§ 21 ust. 1 pkt 2: „szerokość 3,6 m i długość 5 m – w przypadku samochodów osobowych użytkowanych przez osoby niepełnosprawne"'
+  },
+  {
+    id:26, diff:'hard', section:'§ 6', topic:'Wysokość budynku',
+    type:'open',
+    q:'Od jakiego punktu mierzy się wysokość budynku dla celów przyporządkowania wymagań rozporządzenia?',
+    answer:'Od poziomu terenu przy najniżej położonym wejściu do górnej powierzchni najwyżej położonego stropu',
+    keywords:['poziom terenu','wejście','stropu','najniżej','najwyżej'],
+    explanation:'Wysokość budynku mierzy się od poziomu terenu przy najniżej położonym wejściu (pierwsza kondygnacja nadziemna) do górnej powierzchni najwyżej położonego stropu (z izolacją) lub najwyżej położonego punktu stropodachu/przekrycia.',
+    source:'§ 6: „mierzy się od poziomu terenu przy najniżej położonym wejściu do budynku (…) do górnej powierzchni najwyżej położonego stropu, łącznie z grubością izolacji cieplnej i warstwy ją osłaniającej"'
+  },
+  {
+    id:27, diff:'hard', section:'§ 54', topic:'Obowiązek windy',
+    type:'closed',
+    q:'Który z poniższych budynków MUSI być wyposażony w dźwig osobowy?',
+    options:[
+      'Niski budynek biurowy (3 kondygnacje, różnica posadzek 7 m)',
+      'Budynek mieszkalny wielorodzinny (różnica posadzek między 1. a najwyższą kondygnacją > 9,5 m)',
+      'Dom jednorodzinny dwupiętrowy',
+      'Niskie schronisko młodzieżowe (2 kondygnacje)'
+    ],
+    correct:1,
+    explanation:'Budynek mieszkalny wielorodzinny, w którym różnica poziomów posadzek między pierwszą a najwyższą kondygnacją nadziemną przekracza 9,5 m, musi mieć dźwig osobowy.',
+    source:'§ 54 ust. 1: „w których różnica poziomów posadzek pomiędzy pierwszą a najwyższą kondygnacją nadziemną (…) przekracza 9,5 m (…) należy wyposażyć w dźwig osobowy"'
+  },
+  {
+    id:28, diff:'hard', section:'§ 2', topic:'Zakres stosowania',
+    type:'closed',
+    q:'Przy nadbudowie budynku o powierzchni przekraczającej 1000 m², w jakiej sytuacji dopuszcza się niestandardowe spełnienie wymagań rozporządzenia?',
+    options:[
+      'Zawsze, jeśli inwestor tak chce',
+      'Na podstawie ekspertyzy technicznej uzgodnionej z właściwym komendantem PSP lub inspektorem sanitarnym',
+      'Wyłącznie za zgodą Ministra Infrastruktury',
+      'Nie jest to możliwe – przepisy stosuje się bezwzględnie'
+    ],
+    correct:1,
+    explanation:'Przy nadbudowie/rozbudowie budynków istniejących wymagania mogą być spełnione inaczej na podstawie ekspertyzy technicznej jednostki B+R lub rzeczoznawcy, uzgodnionej z komendantem PSP lub inspektorem sanitarnym.',
+    source:'§ 2 ust. 2: „wymagania (…) mogą być spełnione w sposób inny niż określony w rozporządzeniu, stosownie do wskazań ekspertyzy technicznej (…) uzgodnionych z właściwym komendantem wojewódzkim Państwowej Straży Pożarnej lub państwowym wojewódzkim inspektorem sanitarnym"'
+  },
+  {
+    id:29, diff:'hard', section:'§ 26', topic:'Uzbrojenie działki',
+    type:'open',
+    q:'Jakie minimalne sieci należy zapewnić działce budowlanej przeznaczonej pod zabudowę budynkami dla ludzi?',
+    answer:'Wodociągowa, kanalizacyjna, elektroenergetyczna i ciepłownicza',
+    keywords:['wodociągowa','kanalizacyjna','elektroenergetyczna','ciepłownicza','energia'],
+    explanation:'Działka pod budynki dla ludzi musi mieć możliwość przyłączenia do sieci: wodociągowej, kanalizacyjnej, elektroenergetycznej i ciepłowniczej (a dla wybranych budynków – telekomunikacyjnej).',
+    source:'§ 26 ust. 1: „(…) powinna mieć zapewnioną możliwość przyłączenia (…) do sieci wodociągowej, kanalizacyjnej, elektroenergetycznej i ciepłowniczej"'
+  },
+  {
+    id:30, diff:'hard', section:'§ 28', topic:'Odprowadzenie wód deszczowych',
+    type:'closed',
+    q:'Do czego NALEŻY odprowadzać wody opadowe z działki budowlanej z budynkami?',
+    options:[
+      'Wyłącznie do sieci kanalizacji deszczowej lub ogólnospławnej',
+      'Na teren sąsiedniej nieruchomości',
+      'Do kanalizacji deszczowej lub ogólnospławnej; dla niskich budynków dopuszcza się własny teren, doły chłonne lub zbiorniki retencyjne',
+      'Wyłącznie do zbiorników retencyjnych'
+    ],
+    correct:2,
+    explanation:'Zasadniczo wody opadowe kierowane są do kanalizacji deszczowej lub ogólnospławnej. Dla budynków niskich lub bez możliwości przyłączenia dopuszcza się własny teren nieutwardzony, doły chłonne lub zbiorniki retencyjne.',
+    source:'§ 28: „(…) należy wyposażyć w kanalizację umożliwiającą odprowadzenie wód opadowych do sieci kanalizacji deszczowej lub ogólnospławnej. (…) dopuszcza się odprowadzenie (…) na własny teren nieutwardzony, do dołów chłonnych lub do zbiorników retencyjnych."'
+  },
+];
+
+// ====================== KNOWLEDGE BASE (dla czatu) ======================
+const KB = [
+  { kw:['wysokość','budynek','pomiar'], ans:'Wysokość budynku mierzy się od poziomu terenu przy najniżej położonym wejściu (1. kondygnacja nadziemna) do górnej powierzchni najwyżej położonego stropu (z izolacją) lub najwyżej położonego punktu stropodachu.', src:'§ 6' },
+  { kw:['niski','średniowysoki','wysoki','wysokościowy','grupa','kategoria'], ans:'Podział wg wysokości: N – do 12 m lub do 4 kondygnacji; SW – 12–25 m lub 5–9 kondygnacji; W – 25–55 m lub 10–18 kondygnacji; WW – powyżej 55 m.', src:'§ 8' },
+  { kw:['odległość','granica','działka','usytuowanie'], ans:'Ściana z oknami lub drzwiami: min. 4 m od granicy. Ściana bez okien: min. 3 m (lub 1,5 m w szczególnych przypadkach). Zabudowa JD na działce ≤16 m: min. 1,5 m bez okien.', src:'§ 12' },
+  { kw:['parking','stanowisko','odległość'], ans:'Do 10 miejsc – 7 m od okien; 11–60 miejsc – 10 m; powyżej 60 – 20 m. Od granicy: do 10 miejsc – 3 m, 11–60 – 6 m, powyżej 60 – 16 m.', src:'§ 19' },
+  { kw:['teren biologicznie czynny','zieleń','25%','procent'], ans:'Na działkach wielorodzinnych, opieki zdrowotnej i oświaty – co najmniej 25% powierzchni musi być terenem biologicznie czynnym.', src:'§ 39' },
+  { kw:['plac zabaw','nasłonecznienie','dzieci'], ans:'Plac zabaw dla dzieci: min. 4 godz. nasłonecznienia (10:00–16:00) w dniach równonocy. W zabudowie śródmiejskiej – min. 2 godziny.', src:'§ 40' },
+  { kw:['dźwig','winda','dźwigu','winde'], ans:'Dźwig wymagany gdy: różnica posadzek 1. i ostatniej kondygnacji > 9,5 m (budynek wielorodzinny, zamieszkania zbiorowego, użyteczności publicznej). Dopuszcza się brak dźwigu do 5. kondygnacji jeśli ostatnia kondygnacja to mieszkania dwupoziomowe.', src:'§ 54' },
+  { kw:['studnia','woda','pitna'], ans:'Odległość studni: od granicy działki – 5 m; od osi rowu – 7,5 m; od budynków inwentarskich – 15 m; od kanalizacji z oczyszczaniem biologicznym – 30 m; od pola filtracyjnego – 70 m.', src:'§ 31' },
+  { kw:['ogrodzenie','brama','furtka','drut'], ans:'Brama: min. 2,4 m szerokości w świetle. Furtka: min. 0,9 m. Ostro zakończone elementy (drut kolczasty, szkło) zabronione poniżej 1,8 m.', src:'§ 41–43' },
+  { kw:['zbiornik','nieczystości','szambo','bezodpływowy'], ans:'Zbiorniki bezodpływowe w zabudowie JD: min. 5 m od okien i drzwi (ogólna reguła: 15 m), min. 2 m od granicy działki (ogólna: 7,5 m).', src:'§ 36' },
+  { kw:['okno','oświetlenie','dzienne','stosunek'], ans:'Stosunek powierzchni okien do podłogi: min. 1:8 w pomieszczeniu na pobyt ludzi; min. 1:12 w innych pomieszczeniach wymagających oświetlenia dziennego.', src:'§ 57' },
+  { kw:['odpady','śmieci','gromadzenie'], ans:'Miejsca gromadzenia odpadów: min. 10 m od okien i drzwi budynków, min. 3 m od granicy działki, min. 10 m od placu zabaw. Dojście z najdalszego wejścia – max 80 m.', src:'§ 22–23' },
+  { kw:['drzwi','wejściowe','szerokość','wejście'], ans:'Drzwi wejściowe do budynku: min. 0,9 m szerokości i 2,0 m wysokości w świetle ościeżnicy. Próg maks. 2 cm.', src:'§ 62' },
+  { kw:['dojście','dojazd','jezdnia','ciąg'], ans:'Minimalna szerokość jezdni dojazdu: 3 m. Ciąg pieszo-jezdny: min. 5 m. Dojście utwardzone do wejść budynku wielorodzinnego: min. 1,5 m.', src:'§ 14–16' },
+  { kw:['nasłonecznienie','przedszkole','szkoła','pokój'], ans:'Pomieszczenia dla dzieci w żłobkach i przedszkolach: min. 3 godz. nasłonecznienia (8:00–16:00). Pokoje mieszkalne: min. 3 godz. (7:00–17:00). W zabudowie śródmiejskiej: 1,5 godz.', src:'§ 60' },
+];
+
+// ====================== PERSISTENCE ======================
+function loadWrongHistory() {
+  try { return new Set(JSON.parse(localStorage.getItem('wt-wrong') || '[]')); }
+  catch(e) { return new Set(); }
+}
+function saveWrongHistory(set) {
+  localStorage.setItem('wt-wrong', JSON.stringify([...set]));
+}
+function getWrongCount() { return loadWrongHistory().size; }
+
+// ====================== STATE ======================
+let mode = 'random10';
+let selectedDiff = new Set(['easy','med','hard']);
+// questions = kolejka do pokazania (początkowo z puli + historycznie błędne)
+let questions = [];
+// retryQueue = pytania błędnie odpowiedziane w tej sesji, do ponowienia
+let retryQueue = [];
+// firstAttemptIds = ID pytań odpowiedzianych poprawnie przy PIERWSZEJ próbie
+let firstAttemptIds = new Set();
+// seenInSession = ID pytań już raz pokazanych (żeby wiedzieć czy to 1. próba)
+let seenInSession = new Set();
+let current = 0;
+let answered = false;
+let isRetryRound = false; // czy jesteśmy w rundzie powtórek
+
+// ====================== UI ======================
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function selectMode(el, m) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  mode = m;
+}
+
+function toggleDiff(el, d) {
+  if (selectedDiff.has(d)) {
+    if (selectedDiff.size > 1) { selectedDiff.delete(d); el.classList.remove('selected'); }
+  } else {
+    selectedDiff.add(d);
+    el.classList.add('selected');
+  }
+}
+
+function startQuiz() {
+  let pool = ALL_QUESTIONS.filter(q => selectedDiff.has(q.diff));
+  if (mode === 'closed') pool = pool.filter(q => q.type === 'closed');
+  if (mode === 'open') pool = pool.filter(q => q.type === 'open');
+  if (pool.length === 0) pool = ALL_QUESTIONS;
+
+  // Shuffle
+  pool = pool.sort(() => Math.random() - 0.5);
+  let basePool = mode === 'random10' ? pool.slice(0, 10) : pool;
+
+  // Dodaj historycznie błędne pytania na czoło (jeśli nie ma ich już w puli)
+  const wrongHistory = loadWrongHistory();
+  const baseIds = new Set(basePool.map(q => q.id));
+  const extraWrong = ALL_QUESTIONS.filter(q =>
+    wrongHistory.has(q.id) &&
+    !baseIds.has(q.id) &&
+    (selectedDiff.has(q.diff))
+  ).sort(() => Math.random() - 0.5);
+
+  // Historycznie błędne pytania – oznacz je specjalnie i wstaw na początek
+  extraWrong.forEach(q => { q._fromHistory = true; });
+  basePool.forEach(q => { q._fromHistory = false; });
+
+  questions = [...extraWrong, ...basePool];
+  retryQueue = [];
+  firstAttemptIds = new Set();
+  seenInSession = new Set();
+  current = 0;
+  isRetryRound = false;
+
+  show('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = questions[current];
+
+  // Czy to pytanie pojawia się po raz pierwszy w tej sesji?
+  const isFirstAttempt = !seenInSession.has(q.id);
+
+  // Ustal nagłówek
+  const inRetry = !isFirstAttempt || isRetryRound;
+  const totalOrig = questions.length; // tylko oryginalne pytania w kolejce
+  const retryLeft = retryQueue.length;
+
+  // Progress: liczymy po pytaniach oryginalnych
+  let progressLabel, progressPct;
+  if (!inRetry) {
+    progressLabel = `Pytanie ${current + 1} z ${questions.length}`;
+    progressPct = (current / questions.length) * 100;
+  } else {
+    const retryDone = retryQueue.indexOf(q) === -1 ?
+      retryQueue.length : retryQueue.length - retryQueue.indexOf(q);
+    progressLabel = `🔄 Powtórka ${current - (questions.length - retryQueue.length - retryLeft) + 1} z ${retryLeft + 1}`;
+    progressPct = 100;
+  }
+
+  // Uproszczony progress
+  const totalSeen = seenInSession.size;
+  const totalAll = questions.length + retryQueue.length;
+  progressLabel = `Pytanie ${current + 1}`;
+  if (retryLeft > 0 || isRetryRound) {
+    progressLabel += ` · 🔄 ${retryQueue.length} do powtórki`;
+  }
+  progressPct = questions.length > 0 ? Math.min(99, (current / (questions.length + retryQueue.length)) * 100) : 0;
+
+  document.getElementById('q-label').textContent = progressLabel;
+  document.getElementById('q-tag').textContent = (inRetry && !isFirstAttempt ? '🔄 ' : '') + q.section;
+  document.getElementById('progress-fill').style.width = `${progressPct}%`;
+  document.getElementById('score-num').textContent = firstAttemptIds.size;
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('answer-reveal').innerHTML = '';
+  document.getElementById('btn-next').style.display = 'none';
+
+  // Badge koloru jeśli powtórka
+  const tag = document.getElementById('q-tag');
+  tag.style.background = inRetry && !isFirstAttempt
+    ? 'rgba(245,158,11,0.2)' : 'rgba(108,99,255,0.2)';
+  tag.style.color = inRetry && !isFirstAttempt ? 'var(--yellow)' : 'var(--accent2)';
+
+  const area = document.getElementById('options-area');
+  if (q.type === 'closed') {
+    area.innerHTML = `<div class="options">${q.options.map((o,i)=>
+      `<div class="option" onclick="selectOption(this,${i})" data-idx="${i}">
+        <div class="option-letter">${'ABCD'[i]}</div>
+        <div class="option-text">${o}</div>
+      </div>`).join('')}</div>`;
+  } else {
+    area.innerHTML = `<div class="open-input-wrap">
+      <textarea class="open-input" id="open-ans" placeholder="Wpisz swoją odpowiedź…" rows="4"></textarea>
+      <button class="btn-check" onclick="checkOpen()">Sprawdź odpowiedź</button>
+    </div>`;
+    setTimeout(() => document.getElementById('open-ans')?.focus(), 100);
+  }
+
+  document.getElementById('quiz-body').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function handleAnswer(isCorrect, q, userAns) {
+  answered = true;
+  const isFirstAttempt = !seenInSession.has(q.id);
+  seenInSession.add(q.id);
+
+  if (isCorrect) {
+    if (isFirstAttempt) firstAttemptIds.add(q.id);
+    // Usuń z historii błędów jeśli było tam (teraz poprawne)
+    const wh = loadWrongHistory();
+    if (wh.has(q.id)) { wh.delete(q.id); saveWrongHistory(wh); }
+  } else {
+    // Błędna odpowiedź – dodaj do kolejki powtórek (jeśli jeszcze nie ma)
+    if (!retryQueue.find(r => r.id === q.id)) {
+      retryQueue.push(q);
+    }
+    // Zapisz do historii błędów w localStorage
+    const wh = loadWrongHistory();
+    wh.add(q.id);
+    saveWrongHistory(wh);
+  }
+
+  showReveal(isCorrect, q, userAns);
+}
+
+function selectOption(el, idx) {
+  if (answered) return;
+  const q = questions[current];
+  const opts = document.querySelectorAll('.option');
+
+  opts.forEach((o, i) => {
+    if (i === q.correct) o.classList.add('correct');
+    else if (i === idx && idx !== q.correct) o.classList.add('wrong');
+    else o.classList.add('dimmed');
+    o.style.pointerEvents = 'none';
+  });
+
+  handleAnswer(idx === q.correct, q);
+}
+
+function checkOpen() {
+  if (answered) return;
+  const val = document.getElementById('open-ans').value.trim();
+  if (!val) return;
+  const q = questions[current];
+  document.getElementById('open-ans').disabled = true;
+  document.querySelector('.btn-check').disabled = true;
+
+  const lower = val.toLowerCase();
+  const hit = q.keywords.some(k => lower.includes(k.toLowerCase()));
+  handleAnswer(hit, q, val);
+}
+
+function showReveal(correct, q, userAns) {
+  const isFirstAttempt = !seenInSession.has(q.id) === false; // już zaznaczone
+  const isRetry = [...seenInSession].filter(id => id === q.id).length > 1 ||
+    (retryQueue.length > 0 && current >= questions.length - retryQueue.length);
+
+  const div = document.getElementById('answer-reveal');
+  div.innerHTML = `
+    <div class="answer-reveal">
+      <div class="reveal-header ${correct ? 'correct' : 'wrong'}">
+        ${correct
+          ? (seenInSession.size > 1 && !firstAttemptIds.has(q.id) ? '✓ Zaliczone w powtórce' : '✓ Poprawnie!')
+          : '✗ Niepoprawnie – pytanie wróci na końcu'}
+      </div>
+      <div class="reveal-body">
+        ${userAns ? `<div style="font-size:13px;color:var(--muted)">Twoja odpowiedź: <em>${userAns}</em></div>` : ''}
+        <div class="reveal-answer"><strong>Prawidłowa odpowiedź:</strong><br>${q.type==='open' ? q.answer : q.options[q.correct]}</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.5">${q.explanation}</div>
+        <div class="reveal-source">
+          <div class="source-label">📖 Zapis w rozporządzeniu</div>
+          <div class="source-text">${q.source}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Przycisk następne
+  const btn = document.getElementById('btn-next');
+  btn.style.display = 'block';
+  const isLast = current + 1 >= questions.length && retryQueue.length === 0;
+  btn.textContent = isLast ? 'Zobacz wyniki →' : 'Następne pytanie →';
+
+  setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+function nextQuestion() {
+  current++;
+
+  if (current >= questions.length) {
+    // Koniec bieżącej kolejki – sprawdź czy są powtórki
+    if (retryQueue.length > 0) {
+      // Przenieś powtórki do głównej kolejki
+      const toRetry = [...retryQueue];
+      retryQueue = [];
+      questions = [...questions, ...toRetry];
+      isRetryRound = true;
+      renderQuestion();
+    } else {
+      showResults();
+    }
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  const totalOrig = questions.filter(q => !q._fromHistory).length +
+    (questions.filter(q => q._fromHistory).length); // wszystkie pokazane
+  const firstCorrect = firstAttemptIds.size;
+  // Liczymy procent tylko z pytań z pierwszej próby
+  const firstAttemptTotal = [...seenInSession].length; // wszystkie unikalne pytania
+  const pct = firstAttemptTotal > 0 ? Math.round((firstCorrect / firstAttemptTotal) * 100) : 0;
+
+  document.getElementById('result-pct').textContent = pct + '%';
+  document.getElementById('res-correct').textContent = firstCorrect;
+  document.getElementById('res-wrong').textContent = firstAttemptTotal - firstCorrect;
+  document.getElementById('res-total').textContent = firstAttemptTotal;
+
+  let title, sub;
+  if (pct >= 90) { title = '🏆 Doskonale!'; sub = 'Jesteś ekspertem warunków technicznych!'; }
+  else if (pct >= 70) { title = '👍 Bardzo dobrze!'; sub = 'Solidna znajomość rozporządzenia.'; }
+  else if (pct >= 50) { title = '📚 Nieźle!'; sub = 'Warto jeszcze poćwiczyć kilka działów.'; }
+  else { title = '💪 Do nauki!'; sub = 'Rozporządzenie WT wymaga więcej uwagi.'; }
+
+  document.getElementById('result-title').textContent = title;
+  const wrongNow = loadWrongHistory().size;
+  document.getElementById('result-sub').textContent =
+    sub + (wrongNow > 0 ? ` Zapamiętano ${wrongNow} pytań do kolejnego testu.` : ' Wszystkie pytania opanowane!');
+
+  const circ = Math.round(2 * Math.PI * 50);
+  document.getElementById('result-arc').style.strokeDasharray = `${Math.round(circ * pct/100)} ${circ}`;
+
+  const best = parseInt(localStorage.getItem('wt-best') || '0');
+  if (pct > best) { localStorage.setItem('wt-best', pct); }
+  updateHomeStats();
+
+  show('results');
+}
+
+function finishEarly() {
+  if (!confirm('Zakończyć quiz? Wynik zostanie zapisany z dotychczasowych odpowiedzi. Błędne pytania trafią do powtórki przy następnym teście.')) return;
+  // Pytania pokazane a niepoprawne – upewnij się że są w historii błędów
+  // (handleAnswer już to robi na bieżąco, więc wystarczy showResults)
+  retryQueue = []; // czyścimy kolejkę – nie dopytujemy
+  showResults();
+}
+
+function goHome() {
+  updateHomeStats();
+  show('home');
+}
+
+function updateHomeStats() {
+  const best = parseInt(localStorage.getItem('wt-best') || '0');
+  if (best > 0) document.getElementById('best-score').textContent = best + '%';
+  const wrongCount = getWrongCount();
+  const wrongEl = document.getElementById('wrong-count');
+  if (wrongEl) wrongEl.textContent = wrongCount > 0 ? wrongCount : '–';
+  const wrongCard = document.getElementById('wrong-card');
+  if (wrongCard) wrongCard.style.borderColor = wrongCount > 0 ? 'rgba(239,68,68,0.4)' : 'var(--border)';
+}
+
+// ====================== API KEY ======================
+function getApiKey() { return localStorage.getItem('wt-api-key') || ''; }
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('sk-')) {
+    document.getElementById('api-key-status').textContent = '⚠️ Nieprawidłowy format klucza';
+    document.getElementById('api-key-status').style.color = 'var(--red)';
+    return;
+  }
+  localStorage.setItem('wt-api-key', val);
+  document.getElementById('api-key-status').textContent = '✓ Klucz zapisany';
+  document.getElementById('api-key-status').style.color = 'var(--green)';
+  updateApiStatusNote();
+  setTimeout(hideApiKeyScreen, 1000);
+}
+function clearApiKey() {
+  localStorage.removeItem('wt-api-key');
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-status').textContent = 'Klucz usunięty';
+  document.getElementById('api-key-status').style.color = 'var(--muted)';
+  updateApiStatusNote();
+}
+function updateApiStatusNote() {
+  const note = document.getElementById('api-status-note');
+  const btn = document.getElementById('api-key-btn');
+  if (!note || !btn) return;
+  if (getApiKey()) {
+    note.style.display = 'none';
+    btn.textContent = '⚙️ API ✓';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'rgba(34,197,94,0.4)';
+  } else {
+    note.style.display = '';
+    btn.textContent = '⚙️ API';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'var(--border)';
+  }
+}
+function showApiKeyScreen() {
+  document.getElementById('api-key-screen').style.display = 'flex';
+  document.getElementById('chat-screen').style.display = 'none';
+  const key = getApiKey();
+  if (key) document.getElementById('api-key-input').value = key;
+  document.getElementById('api-key-status').textContent = key ? '✓ Klucz jest zapisany' : '';
+  document.getElementById('api-key-status').style.color = 'var(--green)';
+}
+function hideApiKeyScreen() {
+  document.getElementById('api-key-screen').style.display = 'none';
+  document.getElementById('chat-screen').style.display = 'flex';
+}
+
+// ====================== MODAL (Q&A) ======================
+// Historia konwersacji per sesja modalu
+let chatHistory = [];
+
+function openModal() {
+  const q = questions[current];
+  document.getElementById('modal-context-label').textContent = `${q.section} – ${q.topic}`;
+  // Reset czatu przy nowym pytaniu
+  chatHistory = [];
+  document.getElementById('modal-body').innerHTML = `
+    <div class="qa-bubble-ai">
+      Kontekst: <strong>${q.section} – ${q.topic}</strong><br><br>
+      <em>${q.q}</em>
+      <div class="source-tag">Zadaj dowolne pytanie dotyczące tego przepisu lub rozporządzenia WT 2022.</div>
+    </div>`;
+  updateApiStatusNote();
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-input')?.focus(), 300);
+}
+
+function closeModalBg(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+async function sendQuestion() {
+  const input = document.getElementById('modal-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('send-btn').disabled = true;
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML += `<div class="qa-bubble-user">${escHtml(text)}</div>`;
+  body.scrollTop = body.scrollHeight;
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    body.innerHTML += `<div class="qa-bubble-ai">⚙️ Wpisz klucz API Anthropic (przycisk „API" w prawym górnym rogu), aby Claude mógł odpowiadać.<div class="source-tag">Klucz znajdziesz na console.anthropic.com</div></div>`;
+    input.disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    body.scrollTop = body.scrollHeight;
+    return;
+  }
+
+  // Bubble „pisze…"
+  const thinkId = 'think-' + Date.now();
+  body.innerHTML += `<div class="qa-bubble-ai" id="${thinkId}" style="color:var(--muted);font-style:italic">Claude pisze…</div>`;
+  body.scrollTop = body.scrollHeight;
+
+  // Buduj kontekst z aktualnego pytania
+  const q = questions[current];
+  const systemPrompt = `Jesteś ekspertem prawa budowlanego, specjalizującym się w rozporządzeniu Ministra Infrastruktury z dnia 12 kwietnia 2002 r. w sprawie warunków technicznych, jakim powinny odpowiadać budynki i ich usytuowanie (Dz.U. 2022 poz. 1225, tzw. WT 2022).
+
+Aktualne pytanie quizowe dotyczy:
+- Paragraf: ${q.section}
+- Temat: ${q.topic}
+- Treść pytania: ${q.q}
+- Prawidłowa odpowiedź: ${q.type === 'closed' ? q.options[q.correct] : q.answer}
+- Wyjaśnienie: ${q.explanation}
+- Cytat z rozporządzenia: ${q.source}
+
+Odpowiadaj zwięźle i konkretnie po polsku. Gdy powołujesz się na przepisy, cytuj paragraf i ustęp. Jeśli pytanie wykracza poza zakres WT 2022, powiedz o tym wprost.`;
+
+  // Dodaj wiadomość do historii
+  chatHistory.push({ role: 'user', content: text });
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: chatHistory
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${resp.status}`;
+      document.getElementById(thinkId)?.remove();
+      body.innerHTML += `<div class="qa-bubble-ai" style="color:var(--red)">⚠️ Błąd API: ${escHtml(msg)}<div class="source-tag">Sprawdź klucz API w ustawieniach (⚙️ API)</div></div>`;
+    } else {
+      const data = await resp.json();
+      const answer = data.content?.[0]?.text || '(brak odpowiedzi)';
+      chatHistory.push({ role: 'assistant', content: answer });
+      document.getElementById(thinkId)?.remove();
+      body.innerHTML += `<div class="qa-bubble-ai">${escHtml(answer).replace(/\n/g,'<br>')}<div class="source-tag">Claude · ${q.section}</div></div>`;
+    }
+  } catch(e) {
+    document.getElementById(thinkId)?.remove();
+    body.innerHTML += `<div class="qa-bubble-ai" style="color:var(--red)">⚠️ Błąd połączenia: ${escHtml(e.message)}</div>`;
+  }
+
+  input.disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+  body.scrollTop = body.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init
+(function init() {
+  updateHomeStats();
+})();
+</script>
+</body>
+</html>
