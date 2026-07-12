@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Quiz WT 2022 – Warunki Techniczne</title>
 <style>
   :root {
@@ -20,7 +20,8 @@
     --radius: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', sans-serif; }
+  html, body { height: 100%; width: 100%; max-width: 100vw; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', sans-serif; }
+  img, video, iframe, table { max-width: 100%; }
 
   /* SCREENS */
   .screen { display: none; min-height: 100dvh; flex-direction: column; }
@@ -167,7 +168,7 @@
 
   <div class="divider-label">Tryb quizu</div>
   <div class="mode-grid">
-    <div class="mode-btn" data-mode="mixed" onclick="selectMode(this,'mixed')">
+    <div class="mode-btn selected" data-mode="mixed" onclick="selectMode(this,'mixed')">
       <div class="mode-icon">🎲</div>
       <div class="mode-name">Mieszany</div>
       <div class="mode-desc">Zamknięte + otwarte</div>
@@ -181,11 +182,6 @@
       <div class="mode-icon">✍️</div>
       <div class="mode-name">Otwarte</div>
       <div class="mode-desc">Wpisz odpowiedź</div>
-    </div>
-    <div class="mode-btn selected" data-mode="random10" onclick="selectMode(this,'random10')">
-      <div class="mode-icon">⚡</div>
-      <div class="mode-name">Szybki</div>
-      <div class="mode-desc">20 losowych</div>
     </div>
     <div class="mode-btn full-width" data-mode="srs" onclick="selectMode(this,'srs')" id="srs-mode-btn">
       <div class="mode-icon">📅</div>
@@ -710,7 +706,7 @@ function getDueTodayQuestions() {
 }
 
 // ====================== STATE ======================
-let mode = 'random10';
+let mode = 'mixed';
 let selectedDiff = new Set(['easy','med','hard']);
 // questions = kolejka do pokazania (początkowo z puli + historycznie błędne)
 let questions = [];
@@ -894,7 +890,6 @@ function selectOption(el, idx) {
 function checkOpen() {
   if (answered) return;
   const val = document.getElementById('open-ans').value.trim();
-  if (!val) return;
   const q = questions[current];
   document.getElementById('open-ans').disabled = true;
   document.querySelector('.btn-check').disabled = true;
