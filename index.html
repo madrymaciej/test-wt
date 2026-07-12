@@ -157,7 +157,7 @@
     <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px;">Rozporządzenie – Warunki Techniczne Budynków</div>
   </div>
   <div class="stat-row">
-    <div class="stat-card"><div class="stat-num">30</div><div class="stat-lbl">pytań</div></div>
+    <div class="stat-card"><div class="stat-num">20</div><div class="stat-lbl">pytań/sesja</div></div>
     <div class="stat-card"><div class="stat-num" id="best-score">–</div><div class="stat-lbl">najlepszy %</div></div>
     <div class="stat-card" id="wrong-card" style="border-color:var(--border);transition:border-color 0.3s">
       <div class="stat-num" id="wrong-count" style="color:var(--accent2)">–</div>
@@ -185,7 +185,7 @@
     <div class="mode-btn selected" data-mode="random10" onclick="selectMode(this,'random10')">
       <div class="mode-icon">⚡</div>
       <div class="mode-name">Szybki</div>
-      <div class="mode-desc">10 losowych</div>
+      <div class="mode-desc">20 losowych</div>
     </div>
     <div class="mode-btn full-width" data-mode="srs" onclick="selectMode(this,'srs')" id="srs-mode-btn">
       <div class="mode-icon">📅</div>
@@ -754,8 +754,8 @@ function startQuiz() {
     const shuffledDue = due.sort(() => Math.random() - 0.5);
     const shuffledNew = newCards.sort(() => Math.random() - 0.5);
     // Maks. 20 pytań w sesji SRS: najpierw zaległe, potem nowe
-    const newLimit = Math.max(3, 15 - shuffledDue.length);
-    basePool = [...shuffledDue, ...shuffledNew.slice(0, newLimit)];
+    const newLimit = Math.max(3, 20 - shuffledDue.length);
+    basePool = [...shuffledDue, ...shuffledNew.slice(0, newLimit)].slice(0, 20);
     if (basePool.length === 0) {
       alert('Brak pytań do powtórki na dziś! Wróć jutro lub wybierz inny tryb quizu.');
       return;
@@ -766,7 +766,7 @@ function startQuiz() {
     if (mode === 'open')   pool = pool.filter(q => q.type === 'open');
     if (pool.length === 0) pool = ALL_QUESTIONS;
     pool = pool.sort(() => Math.random() - 0.5);
-    basePool = mode === 'random10' ? pool.slice(0, 10) : pool;
+    basePool = mode === 'random10' ? pool.slice(0, 20) : pool;
   }
 
   basePool.forEach(q => { q._fromHistory = false; });
@@ -914,19 +914,26 @@ function showReveal(correct, q, userAns, srsCard) {
     ? ''
     : `<div style="font-size:12px;color:${srsColor};margin-top:8px;padding:6px 10px;background:rgba(108,99,255,0.08);border-radius:8px;display:inline-block">📅 Następna powtórka Anki: <strong>${nextReviewText}</strong>${correct ? ` (za ${card.interval} ${card.interval===1?'dzień':'dni'})` : ' (reset interwału)'}</div>`;
 
+  // Przycisk "Uznaj odpowiedź" – tylko dla pytań otwartych, błędnych, pierwszej próby
+  const showAccept = !correct && q.type === 'open' && !isRetryInSession;
+  const acceptBtn = showAccept
+    ? `<button onclick="acceptAnswer(${q.id})" style="margin-top:10px;width:100%;padding:12px;background:rgba(34,197,94,0.12);border:1.5px solid rgba(34,197,94,0.4);border-radius:12px;color:var(--green);font-size:14px;font-weight:600;cursor:pointer">✓ Uznaj odpowiedź za poprawną</button>`
+    : '';
+
   const div = document.getElementById('answer-reveal');
   div.innerHTML = `
     <div class="answer-reveal">
-      <div class="reveal-header ${correct ? 'correct' : 'wrong'}">
+      <div class="reveal-header ${correct ? 'correct' : 'wrong'}" id="reveal-header-${q.id}">
         ${correct
           ? (isRetryInSession ? '✓ Zaliczone w powtórce' : '✓ Poprawnie!')
           : '✗ Niepoprawnie – pytanie wróci na końcu tej sesji'}
       </div>
       <div class="reveal-body">
-        ${userAns ? `<div style="font-size:13px;color:var(--muted)">Twoja odpowiedź: <em>${userAns}</em></div>` : ''}
+        ${userAns ? `<div style="font-size:13px;color:var(--muted)">Twoja odpowiedź: <em>${escHtml(userAns)}</em></div>` : ''}
         <div class="reveal-answer"><strong>Prawidłowa odpowiedź:</strong><br>${q.type==='open' ? q.answer : q.options[q.correct]}</div>
         <div style="font-size:14px;color:var(--muted);line-height:1.5">${q.explanation}</div>
-        ${srsLabel}
+        ${acceptBtn}
+        <div id="srs-label-${q.id}">${srsLabel}</div>
         <div class="reveal-source">
           <div class="source-label">📖 Zapis w rozporządzeniu</div>
           <div class="source-text">${q.source}</div>
@@ -941,6 +948,48 @@ function showReveal(correct, q, userAns, srsCard) {
   btn.textContent = isLast ? 'Zobacz wyniki →' : 'Następne pytanie →';
 
   setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+function acceptAnswer(qId) {
+  const q = questions.find(x => x.id === qId);
+  if (!q) return;
+
+  // Uznaj jako poprawną – dodaj do firstAttemptIds
+  firstAttemptIds.add(qId);
+
+  // Usuń z retryQueue
+  retryQueue = retryQueue.filter(r => r.id !== qId);
+
+  // Usuń z historii błędów
+  const wh = loadWrongHistory();
+  if (wh.has(qId)) { wh.delete(qId); saveWrongHistory(wh); }
+
+  // Nadpisz SRS na poprawną odpowiedź
+  const newCard = updateSRSCard(qId, true);
+  const nextText = formatNextReview(newCard.due);
+
+  // Zaktualizuj UI bez przeładowania pytania
+  const header = document.getElementById(`reveal-header-${qId}`);
+  if (header) {
+    header.className = 'reveal-header correct';
+    header.textContent = '✓ Uznano jako poprawne!';
+  }
+  // Usuń przycisk
+  const btn = document.querySelector(`[onclick="acceptAnswer(${qId})"]`);
+  if (btn) btn.remove();
+
+  // Zaktualizuj SRS label
+  const srsEl = document.getElementById(`srs-label-${qId}`);
+  if (srsEl) {
+    srsEl.innerHTML = `<div style="font-size:12px;color:var(--green);margin-top:8px;padding:6px 10px;background:rgba(108,99,255,0.08);border-radius:8px;display:inline-block">📅 Następna powtórka Anki: <strong>${nextText}</strong> (za ${newCard.interval} ${newCard.interval===1?'dzień':'dni'})</div>`;
+  }
+
+  // Przelicz przycisk "Następne"
+  const btn2 = document.getElementById('btn-next');
+  if (btn2) {
+    const isLast = current + 1 >= questions.length && retryQueue.length === 0;
+    btn2.textContent = isLast ? 'Zobacz wyniki →' : 'Następne pytanie →';
+  }
 }
 
 function nextQuestion() {
