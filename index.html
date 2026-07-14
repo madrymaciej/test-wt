@@ -197,7 +197,8 @@
     <div class="chip hard selected" onclick="toggleDiff(this,'hard')">🔴 Trudny</div>
   </div>
 
-  <button class="btn-primary" onclick="startQuiz()">Rozpocznij quiz →</button>
+  <button id="btn-resume" onclick="resumePausedQuiz()" style="display:none;width:100%;padding:16px;background:rgba(34,197,94,0.12);border:1.5px solid rgba(34,197,94,0.5);border-radius:14px;font-size:16px;font-weight:700;color:var(--green);cursor:pointer">▶ Kontynuuj dzisiejszy test <span id="resume-label"></span></button>
+  <button class="btn-primary" onclick="startQuiz()">Rozpocznij nowy quiz →</button>
 </div>
 
 <!-- QUIZ -->
@@ -625,6 +626,57 @@ function saveWrongHistory(set) {
 }
 function getWrongCount() { return loadWrongHistory().size; }
 
+// ====================== PAUSE / RESUME ======================
+function savePausedQuiz() {
+  const idMap = q => q.id;
+  const state = {
+    date: todayStr(),
+    questions: questions.map(idMap),
+    retryQueue: retryQueue.map(idMap),
+    firstAttemptIds: [...firstAttemptIds],
+    seenInSession: [...seenInSession],
+    current: current,
+    mode: mode,
+    selectedDiff: [...selectedDiff]
+  };
+  localStorage.setItem('wt-paused', JSON.stringify(state));
+}
+
+function loadPausedState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('wt-paused') || 'null');
+    if (!s || s.date !== todayStr()) return null;
+    return s;
+  } catch(e) { return null; }
+}
+
+function clearPausedQuiz() {
+  localStorage.removeItem('wt-paused');
+}
+
+function resumePausedQuiz() {
+  const s = loadPausedState();
+  if (!s) return;
+
+  const idMap = {};
+  ALL_QUESTIONS.forEach(q => { idMap[q.id] = q; });
+
+  questions      = s.questions.map(id => idMap[id]).filter(Boolean);
+  retryQueue     = s.retryQueue.map(id => idMap[id]).filter(Boolean);
+  firstAttemptIds = new Set(s.firstAttemptIds);
+  seenInSession  = new Set(s.seenInSession);
+  current        = s.current;
+  mode           = s.mode;
+  selectedDiff   = new Set(s.selectedDiff);
+  isRetryRound   = false;
+  answered       = false;
+
+  clearPausedQuiz();
+  updateHomeStats();
+  show('quiz');
+  renderQuestion();
+}
+
 // ====================== ANKI SRS ======================
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 
@@ -772,6 +824,7 @@ function startQuiz() {
   seenInSession = new Set();
   current = 0;
   isRetryRound = false;
+  clearPausedQuiz(); // nowy quiz zastępuje zapisany stan
 
   show('quiz');
   renderQuestion();
@@ -1053,14 +1106,22 @@ function showResults() {
 }
 
 function finishEarly() {
-  if (!confirm('Zakończyć quiz? Wynik zostanie zapisany z dotychczasowych odpowiedzi. Błędne pytania trafią do powtórki przy następnym teście.')) return;
-  // Pytania pokazane a niepoprawne – upewnij się że są w historii błędów
-  // (handleAnswer już to robi na bieżąco, więc wystarczy showResults)
-  retryQueue = []; // czyścimy kolejkę – nie dopytujemy
-  showResults();
+  if (!confirm('Zatrzymać test?\n\nPostęp zostanie zapisany do końca dnia — możesz wrócić i dokończyć ten test.')) return;
+  savePausedQuiz();
+  questions = [];
+  retryQueue = [];
+  updateHomeStats();
+  show('home');
 }
 
 function goHome() {
+  const inQuiz = document.getElementById('quiz').classList.contains('active');
+  if (inQuiz && questions.length > 0) {
+    if (!confirm('Wyjść z testu?\n\nPostęp zostanie zapisany do końca dnia — możesz wrócić i dokończyć ten test.')) return;
+    savePausedQuiz();
+    questions = [];
+    retryQueue = [];
+  }
   updateHomeStats();
   show('home');
 }
@@ -1075,6 +1136,20 @@ function updateHomeStats() {
   if (wrongEl) wrongEl.textContent = dueCount;
   const wrongCard = document.getElementById('wrong-card');
   if (wrongCard) wrongCard.style.borderColor = dueCount > 0 ? 'rgba(108,99,255,0.4)' : 'rgba(34,197,94,0.4)';
+
+  // Przycisk "Kontynuuj test"
+  const paused = loadPausedState();
+  const btnResume = document.getElementById('btn-resume');
+  const resumeLabel = document.getElementById('resume-label');
+  if (btnResume) {
+    if (paused) {
+      const remaining = paused.questions.length - paused.current;
+      if (resumeLabel) resumeLabel.textContent = `(${remaining} pyt. pozostało)`;
+      btnResume.style.display = 'block';
+    } else {
+      btnResume.style.display = 'none';
+    }
+  }
 
   // Zaktualizuj opis w przycisku SRS mode
   const srsDesc = document.getElementById('srs-mode-desc');
