@@ -702,7 +702,58 @@ function loadSRS() {
   try { return JSON.parse(localStorage.getItem('wt-srs') || '{}'); }
   catch(e) { return {}; }
 }
-function saveSRS(data) { localStorage.setItem('wt-srs', JSON.stringify(data)); }
+function saveSRS(data) {
+  localStorage.setItem('wt-srs', JSON.stringify(data));
+  // Nie syncujemy po każdej karcie – sync następuje po zakończeniu quizu (cloudSyncSave)
+}
+
+// ── Cloudflare KV sync ───────────────────────────────────────────────────
+const PROXY_URL = 'https://anthropic-proxy.madry-maciej.workers.dev';
+const CLOUD_USER = 'maciej'; // unikalny identyfikator usera
+
+async function cloudSyncSave() {
+  try {
+    const payload = {
+      srs:   localStorage.getItem('wt-srs')   || '{}',
+      wrong: localStorage.getItem('wt-wrong') || '[]',
+      best:  localStorage.getItem('wt-best')  || '0',
+    };
+    await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-action': 'save-progress', 'x-user-id': CLOUD_USER },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { /* brak internetu – lokalny zapis wystarczy */ }
+}
+
+async function cloudSyncLoad() {
+  try {
+    const resp = await fetch(PROXY_URL, {
+      method: 'GET',
+      headers: { 'x-action': 'load-progress', 'x-user-id': CLOUD_USER }
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data || !data.srs) return;
+
+    // Scalanie: bierzemy nowszy rekord per pytanie (wyższy reps wygrywa)
+    const local = loadSRS();
+    const remote = JSON.parse(data.srs || '{}');
+    const merged = { ...remote };
+    Object.keys(local).forEach(id => {
+      const l = local[id], r = remote[id];
+      if (!r || (l.reps || 0) > (r.reps || 0)) merged[id] = l;
+    });
+    localStorage.setItem('wt-srs', JSON.stringify(merged));
+
+    if (data.wrong) localStorage.setItem('wt-wrong', data.wrong);
+    if (data.best) {
+      const localBest = parseInt(localStorage.getItem('wt-best') || '0');
+      const remoteBest = parseInt(data.best || '0');
+      if (remoteBest > localBest) localStorage.setItem('wt-best', remoteBest);
+    }
+  } catch(e) { /* cicho ignorujemy */ }
+}
 
 function getSRSCard(id) {
   const srs = loadSRS();
@@ -1103,6 +1154,7 @@ function showResults() {
   }
 
   show('results');
+  cloudSyncSave(); // zapisz postęp do Cloudflare KV
 }
 
 function finishEarly() {
@@ -1285,7 +1337,6 @@ Odpowiadaj zwięźle i konkretnie po polsku. Gdy powołujesz się na przepisy, c
   chatHistory.push({ role: 'user', content: text });
 
   try {
-    const PROXY_URL = 'https://anthropic-proxy.madry-maciej.workers.dev';
     const resp = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
@@ -1329,7 +1380,8 @@ function escHtml(s) {
 }
 
 // Init
-(function init() {
+(async function init() {
+  await cloudSyncLoad(); // pobierz postęp z Cloudflare KV (scala z lokalnym)
   updateHomeStats();
 })();
 </script>
