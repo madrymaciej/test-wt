@@ -2671,7 +2671,7 @@ function renderQuestion() {
   document.getElementById('q-tag').textContent = (inRetry && !isFirstAttempt ? '🔄 ' : '') + q.section;
   document.getElementById('progress-fill').style.width = `${progressPct}%`;
   document.getElementById('score-num').textContent = firstAttemptIds.size;
-  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('question-text').textContent = q.q || q.topic;
   document.getElementById('answer-reveal').innerHTML = '';
   document.getElementById('btn-next').style.display = 'none';
 
@@ -3031,7 +3031,7 @@ function openModal() {
   document.getElementById('modal-body').innerHTML = `
     <div class="qa-bubble-ai">
       Kontekst: <strong>${q.section} – ${q.topic}</strong><br><br>
-      <em>${q.q}</em>
+      <em>${q.q || q.topic}</em>
       <div class="source-tag">Zadaj dowolne pytanie dotyczące tego przepisu lub rozporządzenia WT 2022.</div>
     </div>`;
   updateApiStatusNote();
@@ -3079,7 +3079,7 @@ async function sendQuestion() {
 Aktualne pytanie quizowe dotyczy:
 - Paragraf: ${q.section}
 - Temat: ${q.topic}
-- Treść pytania: ${q.q}
+- Treść pytania: ${q.q || q.topic}
 - Prawidłowa odpowiedź: ${q.type === 'closed' ? q.options[q.correct] : q.answer}
 - Wyjaśnienie: ${q.explanation}
 - Cytat z rozporządzenia: ${q.source}
